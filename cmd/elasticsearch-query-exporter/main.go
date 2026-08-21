@@ -13,14 +13,40 @@ import (
 	"github.com/steigr/elasticsearch-query-exporter/internal/probe"
 )
 
+// envDefault returns the value of the environment variable key, or
+// fallback if it is unset, for use as a flag's default value.
+func envDefault(key, fallback string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	return fallback
+}
+
 func main() {
 	listenAddress := flag.String("web.listen-address", ":9206", "Address to listen on for probes.")
-	elasticsearchURL := flag.String("elasticsearch.url", "http://localhost:9200", "Elasticsearch base URL.")
+	elasticsearchURL := flag.String("elasticsearch.url", envDefault("ELASTICSEARCH_URL", "http://localhost:9200"), "Elasticsearch base URL.")
+	elasticsearchUsername := flag.String("elasticsearch.username", envDefault("ELASTICSEARCH_USERNAME", ""), "Elasticsearch basic auth username.")
+	elasticsearchPassword := flag.String("elasticsearch.password", envDefault("ELASTICSEARCH_PASSWORD", ""), "Elasticsearch basic auth password.")
+	elasticsearchCAFile := flag.String("elasticsearch.ca-file", envDefault("ELASTICSEARCH_CA_FILE", ""), "Path to a PEM-encoded CA certificate to trust in addition to the system pool.")
+	elasticsearchInsecureSkipVerify := flag.Bool("elasticsearch.tls-insecure-skip-verify", false, "Disable Elasticsearch TLS certificate verification (testing only).")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	esClient := esquery.NewClient(*elasticsearchURL)
+	esOpts := []esquery.Option{esquery.WithInsecureSkipVerify(*elasticsearchInsecureSkipVerify)}
+	if *elasticsearchUsername != "" {
+		esOpts = append(esOpts, esquery.WithBasicAuth(*elasticsearchUsername, *elasticsearchPassword))
+	}
+	if *elasticsearchCAFile != "" {
+		esOpts = append(esOpts, esquery.WithCACertFile(*elasticsearchCAFile))
+	}
+
+	esClient, err := esquery.NewClient(*elasticsearchURL, esOpts...)
+	if err != nil {
+		logger.Error("failed to configure elasticsearch client", "error", err)
+		os.Exit(1)
+	}
+
 	store := probe.NewAfterTimeStore()
 	handler := probe.NewHandler(esClient, store, logger)
 

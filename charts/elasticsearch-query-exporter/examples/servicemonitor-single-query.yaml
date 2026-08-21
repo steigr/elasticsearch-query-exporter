@@ -1,0 +1,41 @@
+# Standalone ServiceMonitor example (not templated by the chart) for a
+# prometheus-operator installation. Assumes the exporter was installed with
+# `helm install elasticsearch-query-exporter charts/elasticsearch-query-exporter`,
+# which labels its Service app.kubernetes.io/name=elasticsearch-query-exporter,
+# app.kubernetes.io/instance=elasticsearch-query-exporter.
+#
+# One endpoint = one distinct query: it counts documents in logs-* matching
+# "level:error", grouped by the "service" and "host" labels, scraped every
+# 60s. Each scrape covers the window since the query was last scraped
+# (see CLAUDE.md for the windowing model) — the exporter, not Prometheus,
+# tracks that window.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: elasticsearch-query-exporter-error-logs
+  labels:
+    release: prometheus # match your Prometheus resource's serviceMonitorSelector
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: elasticsearch-query-exporter
+      app.kubernetes.io/instance: elasticsearch-query-exporter
+  endpoints:
+    - port: http
+      path: /probe
+      interval: 60s
+      scrapeTimeout: 30s
+      params:
+        index-pattern:
+          - "logs-*"
+        search-string:
+          - "level:error"
+        time-field:
+          - "@timestamp"
+        metric_name:
+          - "elasticsearch_error_log_count"
+        query_id:
+          - "error-logs"
+        label_field_map:
+          - "service=service.name"
+          - "host=host.name"

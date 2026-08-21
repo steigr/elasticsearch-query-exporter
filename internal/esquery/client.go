@@ -5,10 +5,13 @@ package esquery
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -33,11 +36,78 @@ const (
 
 type Client struct {
 	BaseURL    string
+	Username   string
+	Password   string
 	HTTPClient *http.Client
 }
 
-func NewClient(baseURL string) *Client {
-	return &Client{BaseURL: baseURL, HTTPClient: http.DefaultClient}
+// Option configures a Client returned by NewClient.
+type Option func(*Client) error
+
+// WithBasicAuth sends username/password as HTTP basic auth on every request.
+func WithBasicAuth(username, password string) Option {
+	return func(c *Client) error {
+		c.Username = username
+		c.Password = password
+		return nil
+	}
+}
+
+// WithCACertFile trusts the PEM-encoded CA certificate at path in addition
+// to the system pool, for clusters serving a certificate signed by a
+// private CA (e.g. ECK's self-signed transport/HTTP CA).
+func WithCACertFile(path string) Option {
+	return func(c *Client) error {
+		pem, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read CA certificate: %w", err)
+		}
+
+		pool, err := x509.SystemCertPool()
+		if err != nil || pool == nil {
+			pool = x509.NewCertPool()
+		}
+		if !pool.AppendCertsFromPEM(pem) {
+			return fmt.Errorf("no certificates found in %s", path)
+		}
+
+		transport := transportOf(c)
+		transport.TLSClientConfig.RootCAs = pool
+		return nil
+	}
+}
+
+// WithInsecureSkipVerify disables TLS certificate verification. Intended for
+// local testing only.
+func WithInsecureSkipVerify(skip bool) Option {
+	return func(c *Client) error {
+		transportOf(c).TLSClientConfig.InsecureSkipVerify = skip
+		return nil
+	}
+}
+
+// transportOf returns c's *http.Transport, creating one with an initialized
+// TLSClientConfig if c.HTTPClient doesn't already have one.
+func transportOf(c *Client) *http.Transport {
+	transport, ok := c.HTTPClient.Transport.(*http.Transport)
+	if !ok || transport == nil {
+		transport = http.DefaultTransport.(*http.Transport).Clone()
+	}
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{}
+	}
+	c.HTTPClient.Transport = transport
+	return transport
+}
+
+func NewClient(baseURL string, opts ...Option) (*Client, error) {
+	c := &Client{BaseURL: baseURL, HTTPClient: &http.Client{}}
+	for _, opt := range opts {
+		if err := opt(c); err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
 }
 
 // SearchRequest describes one probe's Elasticsearch query.
@@ -116,6 +186,9 @@ func (c *Client) Search(ctx context.Context, req SearchRequest) ([]Hit, error) {
 		return nil, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	if c.Username != "" {
+		httpReq.SetBasicAuth(c.Username, c.Password)
+	}
 
 	resp, err := c.HTTPClient.Do(httpReq)
 	if err != nil {

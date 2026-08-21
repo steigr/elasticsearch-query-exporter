@@ -19,8 +19,13 @@ func newTestHandler(t *testing.T, esResponse string) *Handler {
 	}))
 	t.Cleanup(es.Close)
 
+	esClient, err := esquery.NewClient(es.URL)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewHandler(esquery.NewClient(es.URL), NewAfterTimeStore(), logger)
+	return NewHandler(esClient, NewAfterTimeStore(), logger)
 }
 
 func TestHandler_FirstScrapeReturns404(t *testing.T) {

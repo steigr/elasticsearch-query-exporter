@@ -1,0 +1,84 @@
+# Standalone ServiceMonitor example with multiple independent queries, one
+# per endpoint. Each endpoint hits the same /probe path with different
+# query parameters, so it gets its own internal query ID and its own
+# incremental time window in the exporter (see CLAUDE.md).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: elasticsearch-query-exporter-queries
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: elasticsearch-query-exporter
+      app.kubernetes.io/instance: elasticsearch-query-exporter
+  endpoints:
+    # Error-level log lines per service/host.
+    - port: http
+      path: /probe
+      interval: 60s
+      scrapeTimeout: 30s
+      params:
+        index-pattern:
+          - "logs-*"
+        search-string:
+          - "level:error"
+        time-field:
+          - "@timestamp"
+        metric_name:
+          - "elasticsearch_error_log_count"
+        query_id:
+          - "error-logs"
+        label_field_map:
+          - "service=service.name"
+          - "host=host.name"
+
+    # Failed login attempts per source IP, matched via a plain wildcard
+    # query_string pattern against the "message" field.
+    - port: http
+      path: /probe
+      interval: 60s
+      scrapeTimeout: 30s
+      params:
+        index-pattern:
+          - "auth-*"
+        search-string:
+          - "*failed login*"
+        field:
+          - "message"
+        time-field:
+          - "@timestamp"
+        metric_name:
+          - "elasticsearch_failed_login_count"
+        query_id:
+          - "failed-logins"
+        label_field_map:
+          - "source_ip=source.ip"
+          - "user=user.name"
+
+    # Slow requests (>5s), matched with an explicit query_string field.
+    # pattern_type is stated explicitly here even though it's the default,
+    # to show the parameter exists.
+    - port: http
+      path: /probe
+      interval: 120s
+      scrapeTimeout: 60s
+      params:
+        index-pattern:
+          - "logs-*"
+        search-string:
+          - "duration_ms:>5000"
+        pattern_type:
+          - "query_string"
+        field:
+          - "message"
+        time-field:
+          - "@timestamp"
+        metric_name:
+          - "elasticsearch_slow_request_count"
+        query_id:
+          - "slow-requests"
+        label_field_map:
+          - "route=url.path"
+          - "method=http.method"

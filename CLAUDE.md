@@ -12,9 +12,16 @@ go test ./...                                # run all tests
 go test ./internal/probe/ -run TestQueryID   # run a single test
 go vet ./...
 gofmt -l .                                   # list unformatted files (should be empty)
+
+hack/build-image.sh                          # build multiarch (linux/amd64, linux/arm64) container image, --load by default
+hack/build-image.sh <image:tag> --push       # build and push a multiarch image
+helm lint charts/elasticsearch-query-exporter
+helm template <release> charts/elasticsearch-query-exporter -f charts/elasticsearch-query-exporter/examples/values-eck.yaml
 ```
 
-No external services are required to run the test suite — Elasticsearch interactions are exercised against an `httptest.Server` stub (see `internal/probe/handler_test.go`).
+No external services are required to run the test suite — Elasticsearch interactions are exercised against an `httptest.Server` stub (see `internal/probe/handler_test.go` and `internal/esquery/client_test.go`).
+
+`hack/build-image.sh` needs a `docker buildx` builder that supports both target platforms (`docker buildx create --name multiarch-builder --use`); CI (`.github/workflows/container-image.yml`) builds and pushes to `ghcr.io/steigr/elasticsearch-query-exporter` on pushes to `main` and on `v*` tags.
 
 ## Architecture
 
@@ -52,3 +59,18 @@ Each `/probe` response builds a fresh `prometheus.Registry` (not the global defa
 ### `label_field_map` semantics
 
 Passed as repeated query params in `label=field` form. `ParseLabelFieldMap` (`labelmap.go`) deduplicates by label name — **last occurrence wins** — then sorts by label name for deterministic ordering, since that ordering feeds directly into the query ID hash.
+
+### Elasticsearch client auth/TLS
+
+`esquery.NewClient` takes functional options (`WithBasicAuth`, `WithCACertFile`, `WithInsecureSkipVerify`) rather than a fixed config struct, so `main.go` only wires in what's configured. `main.go`'s flags (`-elasticsearch.username`, `-elasticsearch.password`, `-elasticsearch.ca-file`, ...) each fall back to an env var default (`ELASTICSEARCH_USERNAME`, etc.) via `envDefault`, so credentials can come from a mounted Secret's env var without a flag ever appearing in `ps`/process args — keep that split (URL/username as flags, password as env-var-only in the Helm chart) when adding new secret-shaped settings.
+
+### Container image
+
+`Dockerfile` is a multi-stage cross-compiling build (`GOOS`/`GOARCH` set from buildx's `TARGETOS`/`TARGETARCH`, not QEMU-emulated compilation) onto `gcr.io/distroless/static-debian12:nonroot`. The builder's Go version in the Dockerfile must track `go.mod`'s `go` directive — a mismatch fails the build with "go.mod requires go >= ...".
+
+### Helm chart
+
+`charts/elasticsearch-query-exporter` was scaffolded with `helm create` (Helm 3+'s replacement for the removed `helm init`) and then adjusted. Two things beyond stock `helm create` output:
+
+- `elasticsearch.*` values default to an [ECK](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)-managed cluster named `elasticsearch`: HTTPS URL to `elasticsearch-es-internal-http:9200`, username `elastic`, password from Secret `elasticsearch-es-elastic-user` key `elastic` (mounted as the `ELASTICSEARCH_PASSWORD` env var, never a flag), and the HTTP CA from Secret `elasticsearch-es-http-certs-internal` key `ca.crt` (mounted as a file, referenced via `-elasticsearch.ca-file`). Deployment.yaml conditionally adds the CA volume/mount/arg only when `elasticsearch.tls.existingSecret` is set.
+- `templates/servicemonitor.yaml` renders one `ServiceMonitor` with one endpoint per entry in `serviceMonitor.queries`, each endpoint's `params` built from that query's `index-pattern`/`search-string`/`label_field_map`/etc. — this is the chart's answer to "there's no static `/metrics` path to scrape, each query needs its own scrape config." `charts/elasticsearch-query-exporter/examples/` has both a values-driven example (`values-eck.yaml`) and hand-written standalone `ServiceMonitor` manifests for comparison.
