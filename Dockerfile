@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w" -o /out/elasticsearch-query-exporter ./cmd/elasticsearch-query-exporter
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 COPY --from=build /out/elasticsearch-query-exporter /elasticsearch-query-exporter
 
 USER nonroot:nonroot
