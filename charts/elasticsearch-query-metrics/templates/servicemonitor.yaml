@@ -20,13 +20,19 @@ spec:
           - {{ $q.indexPattern | quote }}
         search-string:
           - {{ $q.query | quote }}
-        metric_name:
+        metric-name:
           - {{ printf "elasticsearch_query_%s" ($queryId | replace "-" "_") | quote }}
-        query_id:
+        query-id:
           - {{ $queryId | quote }}
-        label_field_map:
+        label-field-map:
           {{- range $label, $field := $q.labels }}
           - {{ printf "%s=%s" $label $field | quote }}
           {{- end }}
+        {{- if $q.filters }}
+        document-field-filter:
+          {{- range $field, $value := $q.filters }}
+          - {{ printf "%s=%s" $field $value | quote }}
+          {{- end }}
+        {{- end }}
     {{- end }}
 {{- end }}

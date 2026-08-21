@@ -110,6 +110,13 @@ func NewClient(baseURL string, opts ...Option) (*Client, error) {
 	return c, nil
 }
 
+// FieldFilter requires a single document field to match Value, itself
+// query_string syntax — so e.g. "application*" matches via a wildcard.
+type FieldFilter struct {
+	Field string
+	Value string
+}
+
 // SearchRequest describes one probe's Elasticsearch query.
 type SearchRequest struct {
 	IndexPattern string
@@ -117,9 +124,10 @@ type SearchRequest struct {
 	PatternType  PatternType
 	Field        string // field the pattern is matched against; "*" for query_string means "all fields"
 	TimeField    string
-	After        time.Time // exclusive
-	Before       time.Time // inclusive
-	SourceFields []string  // document fields to retrieve
+	FieldFilters []FieldFilter // additional per-field filters, ANDed with the main pattern
+	After        time.Time     // exclusive
+	Before       time.Time     // inclusive
+	SourceFields []string      // document fields to retrieve
 }
 
 // String renders the request's Elasticsearch query as the JSON string sent
@@ -146,20 +154,30 @@ func (r SearchRequest) buildQuery() map[string]any {
 		}
 	}
 
+	filters := []any{
+		map[string]any{
+			"range": map[string]any{
+				r.TimeField: map[string]any{
+					"gt":  r.After.Format(time.RFC3339Nano),
+					"lte": r.Before.Format(time.RFC3339Nano),
+				},
+			},
+		},
+	}
+	for _, ff := range r.FieldFilters {
+		filters = append(filters, map[string]any{
+			"query_string": map[string]any{
+				"query":         ff.Value,
+				"default_field": ff.Field,
+			},
+		})
+	}
+
 	return map[string]any{
 		"query": map[string]any{
 			"bool": map[string]any{
-				"must": []any{patternClause},
-				"filter": []any{
-					map[string]any{
-						"range": map[string]any{
-							r.TimeField: map[string]any{
-								"gt":  r.After.Format(time.RFC3339Nano),
-								"lte": r.Before.Format(time.RFC3339Nano),
-							},
-						},
-					},
-				},
+				"must":   []any{patternClause},
+				"filter": filters,
 			},
 		},
 		"_source": r.SourceFields,

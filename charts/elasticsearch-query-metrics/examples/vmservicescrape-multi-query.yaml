@@ -18,7 +18,8 @@ spec:
       app.kubernetes.io/name: elasticsearch-query-exporter
       app.kubernetes.io/instance: elasticsearch-query-exporter
   endpoints:
-    # Error-level log lines per service/host.
+    # Error-level log lines per service/host, restricted to namespaces
+    # matching "application*" via document-field-filter.
     - port: http
       path: /probe
       interval: 60s
@@ -30,13 +31,15 @@ spec:
           - "level:error"
         time-field:
           - "@timestamp"
-        metric_name:
+        metric-name:
           - "elasticsearch_error_log_count"
-        query_id:
+        query-id:
           - "error-logs"
-        label_field_map:
+        label-field-map:
           - "service=service.name"
           - "host=host.name"
+        document-field-filter:
+          - "kubernetes.namespace=application*"
 
     # Failed login attempts per source IP, matched via a plain wildcard
     # query_string pattern against the "message" field.
@@ -53,11 +56,11 @@ spec:
           - "message"
         time-field:
           - "@timestamp"
-        metric_name:
+        metric-name:
           - "elasticsearch_failed_login_count"
-        query_id:
+        query-id:
           - "failed-logins"
-        label_field_map:
+        label-field-map:
           - "source_ip=source.ip"
           - "user=user.name"
 
@@ -71,16 +74,16 @@ spec:
           - "logs-*"
         search-string:
           - "duration_ms:>5000"
-        pattern_type:
+        pattern-type:
           - "query_string"
         field:
           - "message"
         time-field:
           - "@timestamp"
-        metric_name:
+        metric-name:
           - "elasticsearch_slow_request_count"
-        query_id:
+        query-id:
           - "slow-requests"
-        label_field_map:
+        label-field-map:
           - "route=url.path"
           - "method=http.method"

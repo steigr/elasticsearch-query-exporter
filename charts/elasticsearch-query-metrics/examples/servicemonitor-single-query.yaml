@@ -5,10 +5,11 @@
 # app.kubernetes.io/instance=elasticsearch-query-exporter.
 #
 # One endpoint = one distinct query: it counts documents in logs-* matching
-# "level:error", grouped by the "service" and "host" labels, scraped every
-# 60s. Each scrape covers the window since the query was last scraped
-# (see CLAUDE.md for the windowing model) — the exporter, not Prometheus,
-# tracks that window.
+# "level:error" AND kubernetes.namespace matching "application*" (via
+# document-field-filter), grouped by the "service" and "host" labels,
+# scraped every 60s. Each scrape covers the window since the query was
+# last scraped (see CLAUDE.md for the windowing model) — the exporter, not
+# Prometheus, tracks that window.
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -32,10 +33,12 @@ spec:
           - "level:error"
         time-field:
           - "@timestamp"
-        metric_name:
+        metric-name:
           - "elasticsearch_error_log_count"
-        query_id:
+        query-id:
           - "error-logs"
-        label_field_map:
+        label-field-map:
           - "service=service.name"
           - "host=host.name"
+        document-field-filter:
+          - "kubernetes.namespace=application*"

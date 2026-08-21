@@ -46,23 +46,25 @@ If you installed that chart under a different release name, or point this at a h
 
 ## Declaring queries
 
-`queries` is a map of query ID to query. The ID doubles as the exporter's `query_id` param (so it must be unique) and feeds the metric name (`elasticsearch_query_<id>`, with `-` replaced by `_`). Every entry becomes one endpoint in every CRD that ends up enabled:
+`queries` is a map of query ID to query. The ID doubles as the exporter's `query-id` param (so it must be unique) and feeds the metric name (`elasticsearch_query_<id>`, with `-` replaced by `_`). Every entry becomes one endpoint in every CRD that ends up enabled:
 
 ```yaml
 queries:
-  error-logs:
+  application-errors:
     indexPattern: "logs-*"
-    query: "level:error"
+    query: "error"
     interval: 60s
     labels:
-      service: service.name
-      host: host.name
+      namespace: kubernetes.namespace
+    filters:
+      kubernetes.namespace: "application*"
 ```
 
 - `indexPattern` — Elasticsearch index pattern to search.
-- `query` — sent to the exporter as `search-string`.
+- `query` — sent to the exporter as `search-string`: the full-text pattern to match.
 - `interval` — scrape interval for this query (default `60s` if omitted).
-- `labels` — Prometheus label name -> Elasticsearch document field, sent as `label_field_map`.
+- `labels` — Prometheus label name -> Elasticsearch document field, sent as `label-field-map`.
+- `filters` (optional) — Elasticsearch document field -> required value, sent as `document-field-filter`. ANDed with `query` and with every other filter. The value is itself `query_string` syntax, so `"application*"` matches via wildcard, not just an exact term — that's how the example above restricts the full-text `error` search to documents where `kubernetes.namespace` matches `application*`.
 
 Each query is independent windowed state in the exporter (see the main [CLAUDE.md](../../CLAUDE.md)) — give two queries distinct IDs even if they share an `indexPattern`/`query`.
 

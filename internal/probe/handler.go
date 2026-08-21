@@ -41,20 +41,26 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		field = "*"
 	}
 	patternType := esquery.PatternQueryString
-	if q.Get("pattern_type") == string(esquery.PatternRegexp) {
+	if q.Get("pattern-type") == string(esquery.PatternRegexp) {
 		patternType = esquery.PatternRegexp
 	}
 	timeField := q.Get("time-field")
 	if timeField == "" {
 		timeField = defaultTimeField
 	}
-	metricName := q.Get("metric_name")
+	metricName := q.Get("metric-name")
 	if metricName == "" {
 		metricName = "elasticsearch_query_result"
 	}
-	queryIDParam := q.Get("query_id")
+	queryIDParam := q.Get("query-id")
 
-	labelFieldMap, err := ParseLabelFieldMap(q["label_field_map"])
+	labelFieldMap, err := ParseLabelFieldMap(q["label-field-map"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fieldFilters, err := ParseFieldFilters(q["document-field-filter"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -71,6 +77,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		PatternType:  patternType,
 		Field:        field,
 		TimeField:    timeField,
+		FieldFilters: fieldFilters,
 		SourceFields: sourceFields,
 	}
 
@@ -96,7 +103,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	registry := prometheus.NewRegistry()
 	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: metricName,
-		Help: "Count of Elasticsearch documents matching the probed query, grouped by label_field_map.",
+		Help: "Count of Elasticsearch documents matching the probed query, grouped by label-field-map.",
 	}, labelNames(labelFieldMap))
 	registry.MustRegister(gauge)
 

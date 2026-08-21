@@ -2,7 +2,7 @@ apiVersion: v2
 name: elasticsearch-query-metrics
 description: Renders ServiceMonitor/VMServiceScrape scrape config for elasticsearch-query-exporter queries, decoupled from the exporter's own release.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "0.1.0"
 home: https://github.com/steigr/elasticsearch-query-exporter
 sources:

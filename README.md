@@ -33,15 +33,24 @@ See each chart's README for details.
 
 ## Query parameters
 
+All parameters are kebab-case.
+
 | Parameter | Required | Description |
 |---|---|---|
 | `index-pattern` | yes | Elasticsearch index pattern to search. |
-| `search-string` | yes | Pattern matched against documents. |
-| `pattern_type` | no | `query_string` (default, Lucene syntax/wildcards) or `regexp` (opt-in, more expensive). |
-| `field` | no | Field the pattern is matched against (default `*` for `query_string`; required for `regexp`). |
+| `search-string` | yes | Pattern matched against documents (full-text; see `field` for which field). |
+| `pattern-type` | no | `query_string` (default, Lucene syntax/wildcards) or `regexp` (opt-in, more expensive). |
+| `field` | no | Field `search-string` is matched against (default `*` for `query_string`; required for `regexp`). |
 | `time-field` | no | Timestamp field used for windowing (default `@timestamp`). |
-| `label_field_map` | repeatable | `label=field` mapping from a Prometheus label to a document field. Last occurrence of a given label wins. |
-| `metric_name` | no | Name of the exposed gauge (default `elasticsearch_query_result`). |
-| `query_id` | no | Extra identifier to distinguish otherwise-identical queries. |
+| `document-field-filter` | repeatable | `field=value` filter requiring an exact document field to match a value (itself query_string syntax, so `application*` is a valid value). ANDed with `search-string` and with every other filter. Last occurrence of a given field wins. |
+| `label-field-map` | repeatable | `label=field` mapping from a Prometheus label to a document field. Last occurrence of a given label wins. |
+| `metric-name` | no | Name of the exposed gauge (default `elasticsearch_query_result`). |
+| `query-id` | no | Extra identifier to distinguish otherwise-identical queries. |
+
+For example, to search for the full-text term `error` only in documents where `kubernetes.namespace` matches `application*`:
+
+```
+/probe?index-pattern=logs-*&search-string=error&document-field-filter=kubernetes.namespace=application*
+```
 
 The exposed metric is a per-label-combination count of documents matched within the scrape's time window. The first scrape of a given query returns `404` (no window yet); subsequent scrapes return `200` with metrics.

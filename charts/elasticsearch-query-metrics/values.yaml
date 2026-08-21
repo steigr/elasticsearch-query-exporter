@@ -32,18 +32,23 @@ prometheus: false
 autoDetect: true
 
 # -- Queries to scrape, keyed by an arbitrary query ID (used as the
-# exporter's query_id param, so it must be unique, and feeds the metric
+# exporter's query-id param, so it must be unique, and feeds the metric
 # name below). Each becomes one endpoint in every CRD that ends up
 # enabled (explicitly or via autoDetect).
 queries: {}
 # error-logs:
 #   # Elasticsearch index pattern to search.
 #   indexPattern: "logs-*"
-#   # search-string sent to the exporter.
-#   query: "level:error"
+#   # search-string sent to the exporter: full-text term(s) to match.
+#   query: "error"
 #   # Scrape interval for this query.
 #   interval: 60s
 #   # Prometheus label -> Elasticsearch document field.
 #   labels:
 #     service: service.name
 #     host: host.name
+#   # Document field -> required value (query_string syntax, so
+#   # "application*" is a valid value, not just an exact term). ANDed
+#   # with "query" above and with every other filter here.
+#   filters:
+#     kubernetes.namespace: "application*"

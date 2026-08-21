@@ -1,34 +1,23 @@
 package probe
 
-import (
-	"fmt"
-	"sort"
-	"strings"
-)
-
 // LabelField maps a Prometheus label name to an Elasticsearch document field.
 type LabelField struct {
 	Label string
 	Field string
 }
 
-// ParseLabelFieldMap parses repeated "label=field" query parameter values
-// into a deduplicated, deterministically ordered mapping. When a label name
-// occurs more than once, the last occurrence wins.
+// ParseLabelFieldMap parses repeated "label=field" label-field-map query
+// parameter values into a deduplicated, deterministically ordered mapping.
+// When a label name occurs more than once, the last occurrence wins.
 func ParseLabelFieldMap(values []string) ([]LabelField, error) {
-	byLabel := make(map[string]string, len(values))
-	for _, v := range values {
-		label, field, ok := strings.Cut(v, "=")
-		if !ok || label == "" {
-			return nil, fmt.Errorf("invalid label_field_map %q: expected format label=field", v)
-		}
-		byLabel[label] = field // last occurrence wins
+	pairs, err := parseKeyValuePairs(values, "label-field-map")
+	if err != nil {
+		return nil, err
 	}
 
-	mappings := make([]LabelField, 0, len(byLabel))
-	for label, field := range byLabel {
-		mappings = append(mappings, LabelField{Label: label, Field: field})
+	mappings := make([]LabelField, len(pairs))
+	for i, p := range pairs {
+		mappings[i] = LabelField{Label: p[0], Field: p[1]}
 	}
-	sort.Slice(mappings, func(i, j int) bool { return mappings[i].Label < mappings[j].Label })
 	return mappings, nil
 }

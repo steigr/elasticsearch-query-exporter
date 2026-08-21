@@ -31,7 +31,7 @@ func newTestHandler(t *testing.T, esResponse string) *Handler {
 func TestHandler_FirstScrapeReturns404(t *testing.T) {
 	h := newTestHandler(t, `{"hits":{"hits":[]}}`)
 
-	req := httptest.NewRequest(http.MethodGet, "/probe?index-pattern=logs-*&search-string=error&label_field_map=status=response.status", nil)
+	req := httptest.NewRequest(http.MethodGet, "/probe?index-pattern=logs-*&search-string=error&label-field-map=status=response.status", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -43,7 +43,7 @@ func TestHandler_FirstScrapeReturns404(t *testing.T) {
 func TestHandler_SecondScrapeReturnsMetrics(t *testing.T) {
 	h := newTestHandler(t, `{"hits":{"hits":[{"_source":{"response":{"status":"500"}}}]}}`)
 
-	url := "/probe?index-pattern=logs-*&search-string=error&label_field_map=status=response.status"
+	url := "/probe?index-pattern=logs-*&search-string=error&label-field-map=status=response.status"
 
 	first := httptest.NewRecorder()
 	h.ServeHTTP(first, httptest.NewRequest(http.MethodGet, url, nil))
@@ -58,6 +58,33 @@ func TestHandler_SecondScrapeReturnsMetrics(t *testing.T) {
 	}
 	if !strings.Contains(second.Body.String(), `elasticsearch_query_result{status="500"} 1`) {
 		t.Fatalf("unexpected body: %s", second.Body.String())
+	}
+}
+
+func TestHandler_DocumentFieldFilterReachesElasticsearchQuery(t *testing.T) {
+	var gotBody string
+	es := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		gotBody = string(body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"hits":{"hits":[]}}`))
+	}))
+	defer es.Close()
+
+	esClient, err := esquery.NewClient(es.URL)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := NewHandler(esClient, NewAfterTimeStore(), logger)
+
+	url := "/probe?index-pattern=logs-*&search-string=error&document-field-filter=kubernetes.namespace=application*"
+
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, url, nil))
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, url, nil))
+
+	if !strings.Contains(gotBody, `"default_field":"kubernetes.namespace"`) || !strings.Contains(gotBody, `"query":"application*"`) {
+		t.Fatalf("expected document-field-filter in ES query body, got: %s", gotBody)
 	}
 }
 

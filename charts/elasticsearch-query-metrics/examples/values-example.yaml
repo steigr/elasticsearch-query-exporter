@@ -39,3 +39,14 @@ queries:
     labels:
       route: url.path
       method: http.method
+
+  # Full-text search for "error" restricted to a namespace prefix via
+  # filters — kubernetes.namespace must match "application*".
+  application-errors:
+    indexPattern: "logs-*"
+    query: "error"
+    interval: 60s
+    labels:
+      namespace: kubernetes.namespace
+    filters:
+      kubernetes.namespace: "application*"
