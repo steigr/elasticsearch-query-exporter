@@ -148,8 +148,8 @@ func (r SearchRequest) buildQuery() map[string]any {
 	default:
 		patternClause = map[string]any{
 			"query_string": map[string]any{
-				"query": r.Pattern,
-				"field": r.Field,
+				"query":         r.Pattern,
+				"default_field": r.Field,
 			},
 		}
 	}
