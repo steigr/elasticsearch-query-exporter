@@ -2,7 +2,7 @@ apiVersion: v2
 name: elasticsearch-query-exporter
 description: Prometheus exporter that bridges Elasticsearch searches into metrics via a /probe endpoint, scraped per-query with query parameters.
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "0.1.1"
 home: https://github.com/steigr/elasticsearch-query-exporter
 sources:

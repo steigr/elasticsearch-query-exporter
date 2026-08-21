@@ -1,0 +1,55 @@
+{{- if .Values.vmServiceScrape.enabled }}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: {{ include "elasticsearch-query-exporter.fullname" . }}
+  labels:
+    {{- include "elasticsearch-query-exporter.labels" . | nindent 4 }}
+    {{- with .Values.vmServiceScrape.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "elasticsearch-query-exporter.selectorLabels" . | nindent 6 }}
+  endpoints:
+    {{- range .Values.serviceMonitor.queries }}
+    - port: http
+      path: /probe
+      interval: {{ .interval | default $.Values.vmServiceScrape.interval }}
+      scrapeTimeout: {{ .scrapeTimeout | default $.Values.vmServiceScrape.scrapeTimeout }}
+      params:
+        index-pattern:
+          - {{ .indexPattern | quote }}
+        search-string:
+          - {{ .searchString | quote }}
+        {{- if .patternType }}
+        pattern_type:
+          - {{ .patternType | quote }}
+        {{- end }}
+        {{- if .field }}
+        field:
+          - {{ .field | quote }}
+        {{- end }}
+        {{- if .timeField }}
+        time-field:
+          - {{ .timeField | quote }}
+        {{- end }}
+        {{- if .metricName }}
+        metric_name:
+          - {{ .metricName | quote }}
+        {{- end }}
+        {{- if .queryId }}
+        query_id:
+          - {{ .queryId | quote }}
+        {{- end }}
+        label_field_map:
+          {{- range $label, $field := .labelFieldMap }}
+          - {{ printf "%s=%s" $label $field | quote }}
+          {{- end }}
+      {{- with .metricRelabelConfigs }}
+      metricRelabelConfigs:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+{{- end }}

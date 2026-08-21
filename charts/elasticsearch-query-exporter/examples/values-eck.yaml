@@ -7,7 +7,9 @@
 # The elasticsearch.* defaults already match this layout; this file exists
 # to make the wiring explicit and to show how to declare queries so the
 # chart renders a ServiceMonitor for you instead of using one of the
-# standalone examples in this directory.
+# standalone examples in this directory. Set vmServiceScrape.enabled: true
+# instead (or in addition) if you run the VictoriaMetrics operator — it
+# reads the same serviceMonitor.queries list.
 
 elasticsearch:
   url: "https://elasticsearch-es-internal-http:9200"

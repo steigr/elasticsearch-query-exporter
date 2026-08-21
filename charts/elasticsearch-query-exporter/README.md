@@ -31,15 +31,17 @@ The chart's `elasticsearch.*` defaults already assume an [ECK](https://www.elast
 
 Adjust these if your cluster has a different name (ECK derives all of the above from `<cluster-name>-es-*`).
 
-## ServiceMonitor
+## ServiceMonitor / VMServiceScrape
 
-Two ways to scrape queries with the prometheus-operator:
+Two scrape-config CRDs are supported, both driven by the same `serviceMonitor.queries` list:
 
-1. **Templated** — set `serviceMonitor.enabled: true` and list queries under `serviceMonitor.queries`; the chart renders one `ServiceMonitor` with one endpoint per query. See `examples/values-eck.yaml`.
-2. **Standalone** — write your own `ServiceMonitor` against the exporter's Service. See `examples/servicemonitor-single-query.yaml` and `examples/servicemonitor-multi-query.yaml`.
+1. **prometheus-operator `ServiceMonitor`** — set `serviceMonitor.enabled: true`; the chart renders one `ServiceMonitor` with one endpoint per query. See `examples/values-eck.yaml`.
+2. **VictoriaMetrics operator `VMServiceScrape`** — set `vmServiceScrape.enabled: true`; renders a `VMServiceScrape` from the *same* `serviceMonitor.queries` list (so the queries only need to be declared once, even with both enabled).
+
+Standalone (non-templated) examples of each are in `examples/`: `servicemonitor-single-query.yaml`, `servicemonitor-multi-query.yaml`, and `vmservicescrape-multi-query.yaml`.
 
 Each query is independent state in the exporter (see the main [CLAUDE.md](../../CLAUDE.md) for the windowing model) — give each a distinct `query_id` if the same `index-pattern`/`search-string` needs multiple label mappings.
 
 ## Values
 
-See [values.yaml](values.yaml) for the full set of options (image, resources, ingress, HTTPRoute, autoscaling, extra env/args, etc.) — standard chart conventions from `helm create`, plus the `elasticsearch.*` and `serviceMonitor.*` blocks described above.
+See [values.yaml](values.yaml) for the full set of options (image, resources, ingress, HTTPRoute, autoscaling, extra env/args, etc.) — standard chart conventions from `helm create`, plus the `elasticsearch.*`, `serviceMonitor.*`, and `vmServiceScrape.*` blocks described above.
