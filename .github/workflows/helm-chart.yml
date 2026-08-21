@@ -5,7 +5,7 @@ on:
     branches: [main]
     tags: ["v*"]
     paths:
-      - "charts/elasticsearch-query-exporter/**"
+      - "charts/**"
       - ".github/workflows/helm-chart.yml"
   workflow_dispatch: {}
 
@@ -21,16 +21,22 @@ jobs:
 
       - uses: azure/setup-helm@v4
 
-      - name: Lint chart
-        run: helm lint charts/elasticsearch-query-exporter
+      - name: Lint charts
+        run: |
+          for chart in charts/*/; do
+            helm lint "$chart"
+          done
 
       - name: Log in to GHCR
         run: helm registry login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Package chart
-        run: helm package charts/elasticsearch-query-exporter -d .packaged
+      - name: Package charts
+        run: |
+          for chart in charts/*/; do
+            helm package "$chart" -d .packaged
+          done
 
-      - name: Push chart
+      - name: Push charts
         run: |
           for pkg in .packaged/*.tgz; do
             helm push "$pkg" oci://ghcr.io/${{ github.repository_owner }}/charts

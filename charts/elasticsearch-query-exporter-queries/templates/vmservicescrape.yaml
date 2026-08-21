@@ -2,18 +2,18 @@
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
-  name: {{ include "elasticsearch-query-exporter.fullname" . }}
+  name: {{ include "elasticsearch-query-exporter-queries.fullname" . }}
   labels:
-    {{- include "elasticsearch-query-exporter.labels" . | nindent 4 }}
+    {{- include "elasticsearch-query-exporter-queries.labels" . | nindent 4 }}
     {{- with .Values.vmServiceScrape.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
   selector:
     matchLabels:
-      {{- include "elasticsearch-query-exporter.selectorLabels" . | nindent 6 }}
+      {{- toYaml .Values.serviceSelectorLabels | nindent 6 }}
   endpoints:
-    {{- range .Values.serviceMonitor.queries }}
+    {{- range .Values.queries }}
     - port: http
       path: /probe
       interval: {{ .interval | default $.Values.vmServiceScrape.interval }}

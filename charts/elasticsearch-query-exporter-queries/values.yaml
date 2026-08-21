@@ -1,0 +1,60 @@
+# Default values for elasticsearch-query-exporter-queries.
+#
+# This chart only renders scrape config (ServiceMonitor / VMServiceScrape)
+# for elasticsearch-query-exporter queries. It's a separate release from
+# the exporter itself (see the elasticsearch-query-exporter chart) so
+# queries can be added, changed, or removed without touching — or
+# re-releasing — the exporter Deployment.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Labels used to select the exporter's Service. Must match the Service
+# you're pointing at — by default this matches the elasticsearch-query-exporter
+# chart's Service labels when that chart was installed as a release named
+# "elasticsearch-query-exporter".
+serviceSelectorLabels:
+  app.kubernetes.io/name: elasticsearch-query-exporter
+  app.kubernetes.io/instance: elasticsearch-query-exporter
+
+# -- Render a prometheus-operator ServiceMonitor. Disabled by default —
+# most installs use either this or vmServiceScrape below, not both.
+serviceMonitor:
+  enabled: false
+  # -- Labels added to the ServiceMonitor object itself, e.g. so it matches
+  # a Prometheus resource's serviceMonitorSelector.
+  labels: {}
+  # -- Default scrape interval for queries that don't set their own.
+  interval: 60s
+  # -- Default scrape timeout. Should comfortably exceed the time an
+  # Elasticsearch query can take.
+  scrapeTimeout: 30s
+
+# -- Render a VictoriaMetrics operator VMServiceScrape. Disabled by
+# default. Reads the same `queries` list as serviceMonitor above.
+vmServiceScrape:
+  enabled: false
+  # -- Labels added to the VMServiceScrape object itself, e.g. so it
+  # matches a VMAgent/VMSingle resource's serviceScrapeSelector.
+  labels: {}
+  interval: 60s
+  scrapeTimeout: 30s
+
+# -- One entry per distinct query to run against Elasticsearch. Each
+# becomes a separate endpoint in every enabled CRD above (ServiceMonitor
+# and/or VMServiceScrape), scraping /probe with these query parameters.
+queries: []
+# - name: error-logs
+#   indexPattern: "logs-*"
+#   searchString: "level:error"
+#   timeField: "@timestamp"
+#   metricName: "elasticsearch_error_log_count"
+#   labelFieldMap:
+#     service: service.name
+#     host: host.name
+#   queryId: "error-logs"
+#   # interval/scrapeTimeout override the chart-wide defaults for this query
+#   interval: 60s
+#   scrapeTimeout: 30s
+#   metricRelabelings: []       # ServiceMonitor only
+#   metricRelabelConfigs: []    # VMServiceScrape only

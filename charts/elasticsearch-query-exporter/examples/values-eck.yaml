@@ -5,11 +5,9 @@
 #     -f charts/elasticsearch-query-exporter/examples/values-eck.yaml
 #
 # The elasticsearch.* defaults already match this layout; this file exists
-# to make the wiring explicit and to show how to declare queries so the
-# chart renders a ServiceMonitor for you instead of using one of the
-# standalone examples in this directory. Set vmServiceScrape.enabled: true
-# instead (or in addition) if you run the VictoriaMetrics operator — it
-# reads the same serviceMonitor.queries list.
+# to make the wiring explicit. To scrape queries against this exporter,
+# install the separate elasticsearch-query-exporter-queries chart — see
+# ../../elasticsearch-query-exporter-queries/examples/values-example.yaml.
 
 elasticsearch:
   url: "https://elasticsearch-es-internal-http:9200"
@@ -19,33 +17,3 @@ elasticsearch:
   tls:
     existingSecret: "elasticsearch-es-http-certs-internal"
     caCertKey: "ca.crt"
-
-serviceMonitor:
-  enabled: true
-  interval: 60s
-  scrapeTimeout: 30s
-  queries:
-    # Counts documents matching "level:error" in logs-* per (service, host),
-    # scraped incrementally since the previous successful scrape.
-    - name: error-logs
-      indexPattern: "logs-*"
-      searchString: "level:error"
-      timeField: "@timestamp"
-      metricName: "elasticsearch_error_log_count"
-      queryId: "error-logs"
-      labelFieldMap:
-        service: service.name
-        host: host.name
-
-    # Counts slow HTTP requests (>5s) per route, using an explicit field
-    # for the query_string match instead of "*".
-    - name: slow-requests
-      indexPattern: "logs-*"
-      searchString: "duration_ms:>5000"
-      field: "message"
-      timeField: "@timestamp"
-      metricName: "elasticsearch_slow_request_count"
-      queryId: "slow-requests"
-      labelFieldMap:
-        route: url.path
-        method: http.method

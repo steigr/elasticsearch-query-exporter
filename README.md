@@ -24,7 +24,12 @@ CI builds and publishes the image on every push to `main` and on version tags �
 
 ## Deploying
 
-A Helm chart is provided in [charts/elasticsearch-query-exporter](charts/elasticsearch-query-exporter), with defaults for running next to an [ECK](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)-managed Elasticsearch cluster, published as an OCI artifact at `oci://ghcr.io/steigr/charts/elasticsearch-query-exporter`. See that chart's [README.md](charts/elasticsearch-query-exporter/README.md).
+Two Helm charts, published as OCI artifacts under `oci://ghcr.io/steigr/charts/`:
+
+- [charts/elasticsearch-query-exporter](charts/elasticsearch-query-exporter) — the exporter Deployment/Service, with defaults for running next to an [ECK](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)-managed Elasticsearch cluster.
+- [charts/elasticsearch-query-exporter-queries](charts/elasticsearch-query-exporter-queries) — `ServiceMonitor`/`VMServiceScrape` scrape config for individual queries, installed as its own release so adding or changing a query doesn't require re-releasing the exporter itself.
+
+See each chart's README for details.
 
 ## Query parameters
 

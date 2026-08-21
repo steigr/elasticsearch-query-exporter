@@ -145,47 +145,7 @@ extraEnv: []
 # - name: FOO
 #   value: bar
 
-# -- Example ServiceMonitor for the prometheus-operator. Each entry in
-# queries becomes one scrape endpoint on /probe with the given query
-# parameters. The same queries list also feeds vmServiceScrape below, so
-# it only needs to be declared once even if both are enabled. See
-# examples/servicemonitor-*.yaml for standalone worked examples against an
-# ECK cluster.
-serviceMonitor:
-  enabled: false
-  # -- Labels added to the ServiceMonitor object itself, e.g. so it matches
-  # a Prometheus resource's serviceMonitorSelector.
-  labels: {}
-  # -- Scrape interval for every query below.
-  interval: 60s
-  # -- Timeout for a single scrape. Should comfortably exceed the time an
-  # Elasticsearch query can take.
-  scrapeTimeout: 30s
-  # -- One entry per distinct query to run against Elasticsearch. Each
-  # becomes a separate endpoint in the ServiceMonitor (and, if enabled,
-  # the VMServiceScrape), scraping /probe with these query parameters.
-  queries: []
-  # - name: error-logs
-  #   indexPattern: "logs-*"
-  #   searchString: "level:error"
-  #   timeField: "@timestamp"
-  #   metricName: "elasticsearch_error_log_count"
-  #   labelFieldMap:
-  #     service: service.name
-  #     host: host.name
-  #   queryId: "error-logs"
-
-# -- Example VMServiceScrape for the VictoriaMetrics operator, as an
-# alternative to serviceMonitor above for VictoriaMetrics-based
-# monitoring stacks. Reuses serviceMonitor.queries as its query list so
-# the same queries work with either (or both) CRDs.
-vmServiceScrape:
-  enabled: false
-  # -- Labels added to the VMServiceScrape object itself, e.g. so it
-  # matches a VMAgent/VMSingle resource's serviceScrapeSelector.
-  labels: {}
-  # -- Scrape interval for every query in serviceMonitor.queries.
-  interval: 60s
-  # -- Timeout for a single scrape. Should comfortably exceed the time an
-  # Elasticsearch query can take.
-  scrapeTimeout: 30s
+# ServiceMonitor/VMServiceScrape scrape config lives in the separate
+# elasticsearch-query-exporter-queries chart, not here — see
+# ../elasticsearch-query-exporter-queries. That keeps adding/changing a
+# query from requiring a re-release of this chart.

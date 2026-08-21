@@ -33,15 +33,8 @@ Adjust these if your cluster has a different name (ECK derives all of the above 
 
 ## ServiceMonitor / VMServiceScrape
 
-Two scrape-config CRDs are supported, both driven by the same `serviceMonitor.queries` list:
-
-1. **prometheus-operator `ServiceMonitor`** — set `serviceMonitor.enabled: true`; the chart renders one `ServiceMonitor` with one endpoint per query. See `examples/values-eck.yaml`.
-2. **VictoriaMetrics operator `VMServiceScrape`** — set `vmServiceScrape.enabled: true`; renders a `VMServiceScrape` from the *same* `serviceMonitor.queries` list (so the queries only need to be declared once, even with both enabled).
-
-Standalone (non-templated) examples of each are in `examples/`: `servicemonitor-single-query.yaml`, `servicemonitor-multi-query.yaml`, and `vmservicescrape-multi-query.yaml`.
-
-Each query is independent state in the exporter (see the main [CLAUDE.md](../../CLAUDE.md) for the windowing model) — give each a distinct `query_id` if the same `index-pattern`/`search-string` needs multiple label mappings.
+This chart only deploys the exporter itself — it has no query configuration and renders no `ServiceMonitor` or `VMServiceScrape`. Scrape config for individual queries lives in the separate [elasticsearch-query-exporter-queries](../elasticsearch-query-exporter-queries) chart, installed as its own release pointed at this chart's Service. That split means adding, changing, or removing a query is its own release, not a re-release of this Deployment.
 
 ## Values
 
-See [values.yaml](values.yaml) for the full set of options (image, resources, ingress, HTTPRoute, autoscaling, extra env/args, etc.) — standard chart conventions from `helm create`, plus the `elasticsearch.*`, `serviceMonitor.*`, and `vmServiceScrape.*` blocks described above.
+See [values.yaml](values.yaml) for the full set of options (image, resources, ingress, HTTPRoute, autoscaling, extra env/args, etc.) — standard chart conventions from `helm create`, plus the `elasticsearch.*` block described above.
