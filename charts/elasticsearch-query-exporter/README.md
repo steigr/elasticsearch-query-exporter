@@ -33,7 +33,7 @@ Adjust these if your cluster has a different name (ECK derives all of the above 
 
 ## ServiceMonitor / VMServiceScrape
 
-This chart only deploys the exporter itself — it has no query configuration and renders no `ServiceMonitor` or `VMServiceScrape`. Scrape config for individual queries lives in the separate [elasticsearch-query-exporter-queries](../elasticsearch-query-exporter-queries) chart, installed as its own release pointed at this chart's Service. That split means adding, changing, or removing a query is its own release, not a re-release of this Deployment.
+This chart only deploys the exporter itself — it has no query configuration and renders no `ServiceMonitor` or `VMServiceScrape`. Scrape config for individual queries lives in the separate [elasticsearch-query-metrics](../elasticsearch-query-metrics) chart, installed as its own release pointed at this chart's Service. That split means adding, changing, or removing a query is its own release, not a re-release of this Deployment.
 
 ## Values
 

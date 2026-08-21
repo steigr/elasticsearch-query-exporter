@@ -146,6 +146,6 @@ extraEnv: []
 #   value: bar
 
 # ServiceMonitor/VMServiceScrape scrape config lives in the separate
-# elasticsearch-query-exporter-queries chart, not here — see
-# ../elasticsearch-query-exporter-queries. That keeps adding/changing a
+# elasticsearch-query-metrics chart, not here — see
+# ../elasticsearch-query-metrics. That keeps adding/changing a
 # query from requiring a re-release of this chart.

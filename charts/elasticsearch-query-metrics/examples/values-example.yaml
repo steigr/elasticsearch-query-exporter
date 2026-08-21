@@ -1,0 +1,41 @@
+# Example values.yaml, targeting an elasticsearch-query-exporter chart
+# release named "elasticsearch-query-exporter" (the default). Adjust
+# serviceSelectorLabels if you installed that chart under a different
+# release name.
+#
+#   helm install elasticsearch-query-metrics \
+#     charts/elasticsearch-query-metrics \
+#     -f charts/elasticsearch-query-metrics/examples/values-example.yaml
+#
+# autoDetect (on by default) renders whichever of ServiceMonitor /
+# VMServiceScrape is actually installed in the cluster, so prometheus/
+# victoriaMetrics below don't need to be set explicitly in most cases —
+# they're here to force one on regardless of what's detected, e.g. when
+# rendering offline with `helm template --api-versions=...`.
+
+serviceSelectorLabels:
+  app.kubernetes.io/name: elasticsearch-query-exporter
+  app.kubernetes.io/instance: elasticsearch-query-exporter
+
+prometheus: true
+# victoriaMetrics: true
+
+queries:
+  # Counts documents matching "level:error" in logs-* per (service, host),
+  # scraped incrementally since the previous successful scrape.
+  error-logs:
+    indexPattern: "logs-*"
+    query: "level:error"
+    interval: 60s
+    labels:
+      service: service.name
+      host: host.name
+
+  # Counts slow HTTP requests (>5s) per route.
+  slow-requests:
+    indexPattern: "logs-*"
+    query: "duration_ms:>5000"
+    interval: 60s
+    labels:
+      route: url.path
+      method: http.method

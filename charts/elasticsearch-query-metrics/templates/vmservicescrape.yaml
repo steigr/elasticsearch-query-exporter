@@ -1,0 +1,32 @@
+{{- $enabled := or .Values.victoriaMetrics (and .Values.autoDetect (.Capabilities.APIVersions.Has "operator.victoriametrics.com/v1beta1/VMServiceScrape")) }}
+{{- if $enabled }}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: {{ include "elasticsearch-query-metrics.fullname" . }}
+  labels:
+    {{- include "elasticsearch-query-metrics.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- toYaml .Values.serviceSelectorLabels | nindent 6 }}
+  endpoints:
+    {{- range $queryId, $q := .Values.queries }}
+    - port: http
+      path: /probe
+      interval: {{ $q.interval | default "60s" }}
+      params:
+        index-pattern:
+          - {{ $q.indexPattern | quote }}
+        search-string:
+          - {{ $q.query | quote }}
+        metric_name:
+          - {{ printf "elasticsearch_query_%s" ($queryId | replace "-" "_") | quote }}
+        query_id:
+          - {{ $queryId | quote }}
+        label_field_map:
+          {{- range $label, $field := $q.labels }}
+          - {{ printf "%s=%s" $label $field | quote }}
+          {{- end }}
+    {{- end }}
+{{- end }}

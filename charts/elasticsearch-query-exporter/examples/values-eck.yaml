@@ -6,8 +6,8 @@
 #
 # The elasticsearch.* defaults already match this layout; this file exists
 # to make the wiring explicit. To scrape queries against this exporter,
-# install the separate elasticsearch-query-exporter-queries chart — see
-# ../../elasticsearch-query-exporter-queries/examples/values-example.yaml.
+# install the separate elasticsearch-query-metrics chart — see
+# ../../elasticsearch-query-metrics/examples/values-example.yaml.
 
 elasticsearch:
   url: "https://elasticsearch-es-internal-http:9200"

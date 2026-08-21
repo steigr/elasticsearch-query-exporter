@@ -1,0 +1,49 @@
+# Default values for elasticsearch-query-metrics.
+#
+# This chart only renders scrape config (ServiceMonitor / VMServiceScrape)
+# for elasticsearch-query-exporter queries. It's a separate release from
+# the exporter itself (see the elasticsearch-query-exporter chart) so
+# queries can be added, changed, or removed without touching — or
+# re-releasing — the exporter Deployment.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Labels used to select the exporter's Service. Must match the Service
+# you're pointing at — by default this matches the elasticsearch-query-exporter
+# chart's Service labels when that chart was installed as a release named
+# "elasticsearch-query-exporter".
+serviceSelectorLabels:
+  app.kubernetes.io/name: elasticsearch-query-exporter
+  app.kubernetes.io/instance: elasticsearch-query-exporter
+
+# -- Render a VictoriaMetrics operator VMServiceScrape.
+victoriaMetrics: false
+
+# -- Render a prometheus-operator ServiceMonitor.
+prometheus: false
+
+# -- Detect which of the two CRDs above are actually installed in the
+# cluster (via Capabilities.APIVersions) and render those too, on top of
+# whatever victoriaMetrics/prometheus force on. `helm template` without a
+# live cluster sees no API versions, so nothing is auto-detected there —
+# pass --api-versions, or set victoriaMetrics/prometheus explicitly, to
+# preview rendered output offline.
+autoDetect: true
+
+# -- Queries to scrape, keyed by an arbitrary query ID (used as the
+# exporter's query_id param, so it must be unique, and feeds the metric
+# name below). Each becomes one endpoint in every CRD that ends up
+# enabled (explicitly or via autoDetect).
+queries: {}
+# error-logs:
+#   # Elasticsearch index pattern to search.
+#   indexPattern: "logs-*"
+#   # search-string sent to the exporter.
+#   query: "level:error"
+#   # Scrape interval for this query.
+#   interval: 60s
+#   # Prometheus label -> Elasticsearch document field.
+#   labels:
+#     service: service.name
+#     host: host.name

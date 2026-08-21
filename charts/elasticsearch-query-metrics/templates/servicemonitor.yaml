@@ -1,0 +1,32 @@
+{{- $enabled := or .Values.prometheus (and .Values.autoDetect (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor")) }}
+{{- if $enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "elasticsearch-query-metrics.fullname" . }}
+  labels:
+    {{- include "elasticsearch-query-metrics.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- toYaml .Values.serviceSelectorLabels | nindent 6 }}
+  endpoints:
+    {{- range $queryId, $q := .Values.queries }}
+    - port: http
+      path: /probe
+      interval: {{ $q.interval | default "60s" }}
+      params:
+        index-pattern:
+          - {{ $q.indexPattern | quote }}
+        search-string:
+          - {{ $q.query | quote }}
+        metric_name:
+          - {{ printf "elasticsearch_query_%s" ($queryId | replace "-" "_") | quote }}
+        query_id:
+          - {{ $queryId | quote }}
+        label_field_map:
+          {{- range $label, $field := $q.labels }}
+          - {{ printf "%s=%s" $label $field | quote }}
+          {{- end }}
+    {{- end }}
+{{- end }}

@@ -5,7 +5,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: elasticsearch-query-exporter-queries
+  name: elasticsearch-query-metrics
   labels:
     release: prometheus
 spec:
