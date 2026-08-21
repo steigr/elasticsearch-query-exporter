@@ -54,3 +54,9 @@ For example, to search for the full-text term `error` only in documents where `k
 ```
 
 The exposed metric is a per-label-combination count of documents matched within the scrape's time window. The first scrape of a given query returns `404` (no window yet); subsequent scrapes return `200` with metrics.
+
+## Logging
+
+Logs are structured JSON on stdout, field names following the [Elastic Common Schema](https://www.elastic.co/guide/en/ecs/current/index.html) (`@timestamp`, `log.level`, `message`, `error.message`, `ecs.version`, ...) — ready to ship straight into an Elasticsearch/Kibana log pipeline. Level is set with `-log.level` (or `LOG_LEVEL`): `debug`, `info` (default), `warn`, or `error`.
+
+Every `/probe` request logs a summary at `info` (`warn` for a `400`, `error` for a `5xx`) with `http.response.status_code`, `event.duration` (nanoseconds), and `elasticsearch.query.id`. At `-log.level=debug`, the exporter additionally logs the exact query body sent to Elasticsearch for every request (`http.request.body.content`) — copy it straight into Kibana Dev Tools or `curl` to check results by hand.

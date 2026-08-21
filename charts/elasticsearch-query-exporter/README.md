@@ -35,6 +35,10 @@ Adjust these if your cluster has a different name (ECK derives all of the above 
 
 This chart only deploys the exporter itself — it has no query configuration and renders no `ServiceMonitor` or `VMServiceScrape`. Scrape config for individual queries lives in the separate [elasticsearch-query-metrics](../elasticsearch-query-metrics) chart, installed as its own release pointed at this chart's Service. That split means adding, changing, or removing a query is its own release, not a re-release of this Deployment.
 
+## Logging
+
+`logLevel` (default `info`) sets `-log.level`: `debug`, `info`, `warn`, or `error`. Logs are structured JSON on stdout following the Elastic Common Schema. At `debug`, every request additionally logs the exact query body sent to Elasticsearch — useful for pulling a query out of the logs to replay by hand.
+
 ## Values
 
-See [values.yaml](values.yaml) for the full set of options (image, resources, ingress, HTTPRoute, autoscaling, extra env/args, etc.) — standard chart conventions from `helm create`, plus the `elasticsearch.*` block described above.
+See [values.yaml](values.yaml) for the full set of options (image, resources, ingress, HTTPRoute, autoscaling, extra env/args, etc.) — standard chart conventions from `helm create`, plus the `elasticsearch.*` block described above and `logLevel`.

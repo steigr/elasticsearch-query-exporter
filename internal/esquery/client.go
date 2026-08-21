@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -39,10 +40,29 @@ type Client struct {
 	Username   string
 	Password   string
 	HTTPClient *http.Client
+	Logger     *slog.Logger
+}
+
+// logger returns c.Logger, or a discarding logger if none was configured
+// (e.g. a Client built without WithLogger, as most tests do).
+func (c *Client) logger() *slog.Logger {
+	if c.Logger != nil {
+		return c.Logger
+	}
+	return slog.New(slog.DiscardHandler)
 }
 
 // Option configures a Client returned by NewClient.
 type Option func(*Client) error
+
+// WithLogger attaches a logger. At debug level, every request logs the
+// exact query body sent to Elasticsearch, so it can be replayed by hand.
+func WithLogger(logger *slog.Logger) Option {
+	return func(c *Client) error {
+		c.Logger = logger
+		return nil
+	}
+}
 
 // WithBasicAuth sends username/password as HTTP basic auth on every request.
 func WithBasicAuth(username, password string) Option {
@@ -207,6 +227,12 @@ func (c *Client) Search(ctx context.Context, req SearchRequest) ([]Hit, error) {
 	if c.Username != "" {
 		httpReq.SetBasicAuth(c.Username, c.Password)
 	}
+
+	c.logger().Debug("sending elasticsearch query",
+		"http.request.method", http.MethodPost,
+		"url.full", url,
+		"http.request.body.content", string(body),
+	)
 
 	resp, err := c.HTTPClient.Do(httpReq)
 	if err != nil {

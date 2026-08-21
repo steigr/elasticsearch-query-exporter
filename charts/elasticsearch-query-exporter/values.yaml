@@ -111,6 +111,11 @@ tolerations: []
 
 affinity: {}
 
+# -- Log level: debug, info, warn, or error. Logs are structured JSON
+# following the Elastic Common Schema. debug additionally logs the exact
+# query body sent to Elasticsearch on every request.
+logLevel: info
+
 # -- Elasticsearch connection settings. Defaults target an ECK-managed
 # cluster named "elasticsearch" in the same namespace as this release.
 elasticsearch:

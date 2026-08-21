@@ -5,10 +5,10 @@ package main
 
 import (
 	"flag"
-	"log/slog"
 	"net/http"
 	"os"
 
+	"github.com/steigr/elasticsearch-query-exporter/internal/ecslog"
 	"github.com/steigr/elasticsearch-query-exporter/internal/esquery"
 	"github.com/steigr/elasticsearch-query-exporter/internal/probe"
 )
@@ -29,11 +29,20 @@ func main() {
 	elasticsearchPassword := flag.String("elasticsearch.password", envDefault("ELASTICSEARCH_PASSWORD", ""), "Elasticsearch basic auth password.")
 	elasticsearchCAFile := flag.String("elasticsearch.ca-file", envDefault("ELASTICSEARCH_CA_FILE", ""), "Path to a PEM-encoded CA certificate to trust in addition to the system pool.")
 	elasticsearchInsecureSkipVerify := flag.Bool("elasticsearch.tls-insecure-skip-verify", false, "Disable Elasticsearch TLS certificate verification (testing only).")
+	logLevel := flag.String("log.level", envDefault("LOG_LEVEL", "info"), "Log level: debug, info, warn, or error. debug also logs every query sent to Elasticsearch.")
 	flag.Parse()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	level, err := ecslog.ParseLevel(*logLevel)
+	if err != nil {
+		os.Stderr.WriteString(err.Error() + "\n")
+		os.Exit(1)
+	}
+	logger := ecslog.New(level)
 
-	esOpts := []esquery.Option{esquery.WithInsecureSkipVerify(*elasticsearchInsecureSkipVerify)}
+	esOpts := []esquery.Option{
+		esquery.WithInsecureSkipVerify(*elasticsearchInsecureSkipVerify),
+		esquery.WithLogger(logger),
+	}
 	if *elasticsearchUsername != "" {
 		esOpts = append(esOpts, esquery.WithBasicAuth(*elasticsearchUsername, *elasticsearchPassword))
 	}
@@ -43,7 +52,7 @@ func main() {
 
 	esClient, err := esquery.NewClient(*elasticsearchURL, esOpts...)
 	if err != nil {
-		logger.Error("failed to configure elasticsearch client", "error", err)
+		logger.Error("failed to configure elasticsearch client", ecslog.Err(err))
 		os.Exit(1)
 	}
 
@@ -57,9 +66,13 @@ func main() {
 <body><h1>Elasticsearch Query Exporter</h1><p><a href="/probe">/probe</a></p></body></html>`))
 	})
 
-	logger.Info("starting elasticsearch-query-exporter", "listen-address", *listenAddress, "elasticsearch.url", *elasticsearchURL)
+	logger.Info("starting elasticsearch-query-exporter",
+		"listen-address", *listenAddress,
+		"elasticsearch.url", *elasticsearchURL,
+		"configured_log_level", level.String(),
+	)
 	if err := http.ListenAndServe(*listenAddress, mux); err != nil {
-		logger.Error("server failed", "error", err)
+		logger.Error("server failed", ecslog.Err(err))
 		os.Exit(1)
 	}
 }

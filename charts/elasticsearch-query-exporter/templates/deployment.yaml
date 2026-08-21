@@ -52,6 +52,7 @@ spec:
             {{- if .Values.elasticsearch.tls.insecureSkipVerify }}
             - -elasticsearch.tls-insecure-skip-verify=true
             {{- end }}
+            - -log.level={{ .Values.logLevel }}
             {{- with .Values.extraArgs }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
