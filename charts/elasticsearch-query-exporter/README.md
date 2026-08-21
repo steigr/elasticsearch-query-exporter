@@ -2,12 +2,23 @@
 
 Helm chart for the [elasticsearch-query-exporter](../../README.md) — a Prometheus exporter that bridges Elasticsearch searches into metrics via a `/probe` endpoint.
 
-## Installing next to an ECK-managed cluster
+## Installing
+
+Published as an OCI artifact on GHCR — no `helm repo add` needed:
+
+```bash
+helm install elasticsearch-query-exporter oci://ghcr.io/steigr/charts/elasticsearch-query-exporter \
+  -f charts/elasticsearch-query-exporter/examples/values-eck.yaml
+```
+
+Or from a checkout of this repo, next to an ECK-managed cluster:
 
 ```bash
 helm install elasticsearch-query-exporter charts/elasticsearch-query-exporter \
   -f charts/elasticsearch-query-exporter/examples/values-eck.yaml
 ```
+
+CI publishes the chart to `oci://ghcr.io/steigr/charts/elasticsearch-query-exporter` on every push to `main` (and `v*` tags) that touches `charts/elasticsearch-query-exporter/**` — see [.github/workflows/helm-chart.yml](../../.github/workflows/helm-chart.yml). Bump `version` in `Chart.yaml` before a release so the published tag reflects a real chart change.
 
 The chart's `elasticsearch.*` defaults already assume an [ECK](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html) cluster named `elasticsearch` in the same namespace:
 
